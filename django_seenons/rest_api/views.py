@@ -1,16 +1,19 @@
 from rest_framework import viewsets, mixins, status
 from rest_framework.response import Response
 from drf_spectacular.utils import OpenApiParameter, extend_schema
-from .serializers import CustomerSerializer, StreamsSerializer, AssetsSerializer, LogisticServiceProvidersSerializer, \
-    LSPProductsSerializer, LSPTimeslotsSerializer, StreamSerializerForProducts
+from django.core.exceptions import ValidationError
+
+from .serializers import CustomerSerializer, StreamsSerializer, AssetsSerializer, \
+    LogisticServiceProvidersSerializer, LSPProductsSerializer, LSPTimeslotsSerializer, \
+    StreamSerializerForProducts
 from .models import Customer, Stream, Asset, LogisticServiceProvider, LSPProduct, LSPTimeslot
 
 
 class CustomersViewSet(mixins.ListModelMixin,
-                      mixins.RetrieveModelMixin,
-                      mixins.CreateModelMixin,
-                      mixins.DestroyModelMixin,
-                      viewsets.GenericViewSet):
+                       mixins.RetrieveModelMixin,
+                       mixins.CreateModelMixin,
+                       mixins.DestroyModelMixin,
+                       viewsets.GenericViewSet):
 
     serializer_class = CustomerSerializer
     queryset = Customer.objects.all()
@@ -44,6 +47,14 @@ class LogisticServiceProvidersViewSet(mixins.ListModelMixin,
 
     serializer_class = LogisticServiceProvidersSerializer
     queryset = LogisticServiceProvider.objects.all()
+
+    def post(self, request, *args, **kwargs):
+        
+        ## Check if validation error is raised
+        try:
+            return self.create(request, *args, **kwargs)
+        except ValidationError as e:
+            return Response({'error': e.message_dict}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class LSPProductsViewSet(mixins.ListModelMixin,
@@ -144,7 +155,7 @@ class ProductsViewSet(mixins.ListModelMixin,
             lsp_timeslots = lsp_timeslots.filter(weekday__in=weekdays)
         serialized_lsp_timeslots = LSPTimeslotsSerializer(
             lsp_timeslots, many=True)
-
+        
         # Get all LSP Products from all the Logistic Service Providers in that postal code
         lsp_products = LSPProduct.objects.filter(id_lsp__in=lsp_in_postalcode)
 

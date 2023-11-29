@@ -1,9 +1,10 @@
 from rest_framework import serializers
+
 from .models import Customer, Stream, Asset, LogisticServiceProvider, LSPProduct, LSPTimeslot
 
 
 class CustomerSerializer(serializers.ModelSerializer):
-    """ Serializer for Customers """
+    """ Customer table: contains the data  """
 
     class Meta:
         model = Customer
@@ -67,6 +68,7 @@ class LSPTimeslotsSerializer(serializers.ModelSerializer):
 
     # In the DRF GUI, the weekday is a choosable dropdown with weekday names
     weekday = serializers.ChoiceField(list(WeekdayField.WEEKDAYS_MAP.items()))
+    
     
     class Meta:
         model = LSPTimeslot
