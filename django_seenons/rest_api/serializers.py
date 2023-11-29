@@ -1,13 +1,21 @@
-
 from rest_framework import serializers
-from .models import Streams, Assets, LogisticServiceProviders, LSPProducts, LSPTimeslots
+from .models import Customer, Stream, Asset, LogisticServiceProvider, LSPProduct, LSPTimeslot
+
+
+class CustomerSerializer(serializers.ModelSerializer):
+    """ Serializer for Customers """
+
+    class Meta:
+        model = Customer
+        fields = '__all__'
+        read_only_fields = ['id']
 
 
 class StreamsSerializer(serializers.ModelSerializer):
     """ Serializer for Streams """
 
     class Meta:
-        model = Streams
+        model = Stream
         fields = '__all__'
         read_only_fields = ['id']
 
@@ -16,7 +24,7 @@ class AssetsSerializer(serializers.ModelSerializer):
     """ Serializer for Assets """
 
     class Meta:
-        model = Assets
+        model = Asset
         fields = '__all__'
         read_only_fields = ['id']
 
@@ -25,7 +33,7 @@ class LogisticServiceProvidersSerializer(serializers.ModelSerializer):
     """ Serializer for LogisticServiceProviders """
 
     class Meta:
-        model = LogisticServiceProviders
+        model = LogisticServiceProvider
         fields = '__all__'
         read_only_fields = ['id']
 
@@ -34,33 +42,36 @@ class LSPProductsSerializer(serializers.ModelSerializer):
     """ Serializer for LSPProducts """
 
     class Meta:
-        model = LSPProducts
+        model = LSPProduct
         fields = '__all__'
         read_only_fields = ['id']
 
+
+class WeekdayField(serializers.Field):
+    
+    WEEKDAYS_MAP = {
+        1: 'Monday',
+        2: 'Tuesday',
+        3: 'Wednesday',
+        4: 'Thursday',
+        5: 'Friday',
+        6: 'Saturday',
+        0: 'Sunday',
+    }
+
+    def to_representation(self, value):
+        return self.WEEKDAYS_MAP.get(value, None)
 
 class LSPTimeslotsSerializer(serializers.ModelSerializer):
     """ Serializer for LSPTimeslots """
 
-    WEEKDAY_CHOICES = (
-        (1, 'Monday'),
-        (2, 'Tuesday'),
-        (3, 'Wednesday'),
-        (4, 'Thursday'),
-        (5, 'Friday'),
-        (6, 'Saturday'),
-        (0, 'Sunday'),
-    )
-
-    weekday = serializers.SerializerMethodField()
-
+    # In the DRF GUI, the weekday is a choosable dropdown with weekday names
+    weekday = serializers.ChoiceField(list(WeekdayField.WEEKDAYS_MAP.items()))
+    
     class Meta:
-        model = LSPTimeslots
+        model = LSPTimeslot
         fields = '__all__'
         read_only_fields = ['id']
-
-    def get_weekday(self, obj):
-        return self.WEEKDAY_CHOICES[obj.weekday][1]
 
 
 class StreamSerializerForProducts(serializers.ModelSerializer):
@@ -68,6 +79,6 @@ class StreamSerializerForProducts(serializers.ModelSerializer):
     stream_name = serializers.CharField(source='name')
 
     class Meta:
-        model = Streams
+        model = Stream
         fields = ['id', 'stream_name', 'type', 'details_url', 'image_url']
         read_only_fields = ['id']
