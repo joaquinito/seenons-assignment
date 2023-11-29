@@ -49,8 +49,8 @@ class LogisticServiceProvidersViewSet(mixins.ListModelMixin,
     queryset = LogisticServiceProvider.objects.all()
 
     def post(self, request, *args, **kwargs):
-        
-        ## Check if validation error is raised
+
+        # Check if validation error is raised
         try:
             return self.create(request, *args, **kwargs)
         except ValidationError as e:
@@ -105,7 +105,7 @@ class ProductsViewSet(mixins.ListModelMixin,
 
     def list(self, request):
 
-        # Get request parameters
+        # Get HTTP request parameters
         postal_code = request.GET.get('postalcode', None)
         weekdays_in_params = request.GET.getlist('weekdays', None)
 
@@ -121,64 +121,69 @@ class ProductsViewSet(mixins.ListModelMixin,
             return Response({'error': 'postalcode must be an integer between between 1000 and 9999'},
                             status=status.HTTP_400_BAD_REQUEST)
 
-        # Get weekdays in integer format from request parameters
+        # Convert weekdays from parameters to integer format
         weekdays = []
         if weekdays_in_params is not None:
             for elem in weekdays_in_params:
+                split_elems = elem.split(',')
 
-                # TODO: Clean this up, create a new function to add to weekdays list
-                if ',' in elem:
-                    split_elems = elem.split(',')
+                for split_elem in split_elems:
+                    if not split_elem.isnumeric():
+                        weekdays.append(
+                            self.weekday_map[split_elem.lower()])
+                    else:
+                        weekdays.append(int(split_elem))
 
-                    for split_elem in split_elems:
-                        if not split_elem.isnumeric():
-                            weekdays.append(
-                                self.weekday_map[split_elem.lower()])
-                        else:
-                            weekdays.append(int(split_elem))
-
-                elif not elem.isnumeric():
-                    weekdays.append(self.weekday_map[elem.lower()])
-                else:
-                    weekdays.append(int(elem))
-
-         # Get all Logistic Service Providers that match the postal code
+        # Get all Logistic Service Providers that match the postal code
         lsp_in_postalcode = LogisticServiceProvider.objects.filter(
             postal_code_min__lte=postal_code,
             postal_code_max__gte=postal_code)
 
-        # Get all LSP Timeslots for the Logistic Service Providers
+        # Get all the Timeslots from those Logistic Service Providers
         lsp_timeslots = LSPTimeslot.objects.filter(
             id_lsp__in=lsp_in_postalcode)
         # Apply weekdays filter to LSP Timeslots
         if len(weekdays) > 0:
             lsp_timeslots = lsp_timeslots.filter(weekday__in=weekdays)
-        serialized_lsp_timeslots = LSPTimeslotsSerializer(
-            lsp_timeslots, many=True)
-        
-        # Get all LSP Products from all the Logistic Service Providers in that postal code
+
+        # Get all LSP Products from all those Logistic Service Providers
         lsp_products = LSPProduct.objects.filter(id_lsp__in=lsp_in_postalcode)
 
         # Get all the Streams that are in those LSP Products
-        streams = Stream.objects.filter(
+        streams = self.queryset.filter(
             id__in=lsp_products.values('id_stream'))
         serialized_streams = StreamSerializerForProducts(streams, many=True)
 
+        # Go through all those Streams and add the availability and assets
         filtered_streams = []
-        # Add assets and availability to each stream
-        for each_stream in serialized_streams.data:
+        for this_stream in serialized_streams.data:
 
-            each_stream['availability'] = serialized_lsp_timeslots.data
-            # Remove each_stream from the serialized_streams.data list if 'availability' is empty
-            if len(each_stream['availability']) != 0:
-                filtered_streams.append(each_stream)
+            # Get the LSPs that have this stream
+            lsp_for_this_stream = lsp_in_postalcode.filter(
+                id__in=lsp_products.filter(id_stream=this_stream['id']).values('id_lsp'))
+
+            # Get the Timeslots from the LSPs that have this stream
+            timeslots_lsp_with_this_stream = lsp_timeslots.filter(
+                id_lsp__in=lsp_for_this_stream.values('id'))
+
+            # Add the Timeslots to the stream's availability
+            this_stream['availability'] = LSPTimeslotsSerializer(
+                timeslots_lsp_with_this_stream, many=True).data
+
+            # Add this stream to our final list if 'availability' is not empty
+            if len(this_stream['availability']) != 0:
+                filtered_streams.append(this_stream)
 
             # Get all LSP Products for the selected streams
             products_with_this_stream = lsp_products.filter(
-                id_stream=each_stream['id'])
+                id_stream=this_stream['id'])
+
+            # Get all Assets for the selected streams
             assets_in_this_stream = Asset.objects.filter(
                 id__in=products_with_this_stream.values('id_asset'))
-            each_stream['assets'] = AssetsSerializer(
+
+            # Add assets to the stream
+            this_stream['assets'] = AssetsSerializer(
                 assets_in_this_stream, many=True).data
 
         return Response(filtered_streams, status=status.HTTP_200_OK)
