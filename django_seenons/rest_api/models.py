@@ -1,4 +1,5 @@
 from django.db import models
+from datetime import timedelta, datetime
 from django.core.validators import MinValueValidator, MaxValueValidator
 
 
@@ -57,7 +58,14 @@ class LSPTimeslots(models.Model):
         validators=[MinValueValidator(0), MaxValueValidator(6)])
     every_other_week = models.BooleanField()
     timeslot_start = models.TimeField(null=True)
-    timeslot_end = models.TimeField(null=True)
+    timeslot_end = models.TimeField(null=True, editable=False)
+
+    # timeslot_end is automatically calculated based on timeslot_start - it will be 2 hours later
+    def save(self, *args, **kwargs):
+        if self.timeslot_start is not None:
+            start_datetime = datetime.combine(datetime(1, 1, 1), self.timeslot_start)
+            self.timeslot_end = (start_datetime + timedelta(hours=2)).time()
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.id_lsp.name + ' - ' + str(self.weekday) + ' - ' + str(self.timeslot_start) + ' - ' + str(self.timeslot_end)
