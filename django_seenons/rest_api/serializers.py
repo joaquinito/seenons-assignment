@@ -66,9 +66,8 @@ class WeekdayField(serializers.Field):
 class LSPTimeslotsSerializer(serializers.ModelSerializer):
     """ Serializer for LSPTimeslots """
 
-    # In the DRF GUI, the weekday is a choosable dropdown with weekday names
+    # In the form in the DRF GUI, the weekday is a dropdown with weekday names
     weekday = serializers.ChoiceField(list(WeekdayField.WEEKDAYS_MAP.items()))
-    
     
     class Meta:
         model = LSPTimeslot
@@ -78,9 +77,10 @@ class LSPTimeslotsSerializer(serializers.ModelSerializer):
 
 class StreamSerializerForProducts(serializers.ModelSerializer):
     """ Serializer for Streams used in ProductsViewSet """
+
     stream_name = serializers.CharField(source='name')
 
     class Meta:
         model = Stream
-        fields = ['id', 'stream_name', 'type', 'details_url', 'image_url']
+        fields = ['id', 'stream_name', 'type']
         read_only_fields = ['id']

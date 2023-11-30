@@ -21,8 +21,6 @@ class Stream(models.Model):
     id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=200)
     type = models.CharField(max_length=200)
-    details_url = models.CharField(null=True, max_length=300)
-    image_url = models.CharField(null=True, max_length=300)
 
     def __str__(self):
         return self.name

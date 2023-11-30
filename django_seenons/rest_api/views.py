@@ -78,13 +78,20 @@ class LSPTimeslotsViewSet(mixins.ListModelMixin,
 
 
 @extend_schema(
-    description='Returns all products available for a given postal code and weekdays',
+    description='Returns all streams available for a given postal code and weekdays, \
+      including the timeslots and assets for each stream.',
     parameters=[
         OpenApiParameter(
                 name='postalcode',
                 required=True,
                 type=int,
-                description='Postal code of the customer',
+                description='Postal code (between 1000 and 9999)',
+        ),
+        OpenApiParameter(
+            name='weekdays',
+            required=False,
+            description='Weekdays in comma-separated string format (e.g. "monday", "Tuesday", etc.) \
+                            or integer format (0 = Sunday, 1 = Monday, ... 6 = Saturday)',
         ),
     ],
 )
