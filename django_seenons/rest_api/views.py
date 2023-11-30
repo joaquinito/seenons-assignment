@@ -3,9 +3,9 @@ from rest_framework.response import Response
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from django.core.exceptions import ValidationError
 
-from .serializers import CustomerSerializer, StreamsSerializer, AssetsSerializer, \
-    LogisticServiceProvidersSerializer, LSPProductsSerializer, LSPTimeslotsSerializer, \
-    StreamSerializerForProducts
+from .serializers import CustomerSerializer, StreamSerializer, AssetSerializer, \
+    LogisticServiceProvidersSerializer, LSPProductSerializer, LSPTimeslotSerializer, \
+    ProductSerializer
 from .models import Customer, Stream, Asset, LogisticServiceProvider, LSPProduct, LSPTimeslot
 
 
@@ -25,7 +25,7 @@ class StreamsViewSet(mixins.ListModelMixin,
                      mixins.DestroyModelMixin,
                      viewsets.GenericViewSet):
 
-    serializer_class = StreamsSerializer
+    serializer_class = StreamSerializer
     queryset = Stream.objects.all()
 
 
@@ -35,7 +35,7 @@ class AssetsViewSet(mixins.ListModelMixin,
                     mixins.DestroyModelMixin,
                     viewsets.GenericViewSet):
 
-    serializer_class = AssetsSerializer
+    serializer_class = AssetSerializer
     queryset = Asset.objects.all()
 
 
@@ -63,7 +63,7 @@ class LSPProductsViewSet(mixins.ListModelMixin,
                          mixins.DestroyModelMixin,
                          viewsets.GenericViewSet):
 
-    serializer_class = LSPProductsSerializer
+    serializer_class = LSPProductSerializer
     queryset = LSPProduct.objects.all()
 
 
@@ -73,7 +73,7 @@ class LSPTimeslotsViewSet(mixins.ListModelMixin,
                           mixins.DestroyModelMixin,
                           viewsets.GenericViewSet):
 
-    serializer_class = LSPTimeslotsSerializer
+    serializer_class = LSPTimeslotSerializer
     queryset = LSPTimeslot.objects.all()
 
 
@@ -96,7 +96,7 @@ class LSPTimeslotsViewSet(mixins.ListModelMixin,
         ),
     ],
     responses={
-        200: StreamSerializerForProducts
+        200: ProductSerializer
     }
 )
 class ProductsViewSet(mixins.ListModelMixin,
@@ -181,7 +181,7 @@ class ProductsViewSet(mixins.ListModelMixin,
         # Get all the Streams that are in those LSP Products
         streams = self.queryset.filter(
             id__in=lsp_products.values('id_stream'))
-        serialized_streams = StreamSerializerForProducts(streams, many=True)
+        serialized_streams = ProductSerializer(streams, many=True)
 
         # Go through all those Streams and add the availability and assets
         filtered_streams = []
@@ -196,7 +196,7 @@ class ProductsViewSet(mixins.ListModelMixin,
                 id_lsp__in=lsp_for_this_stream.values('id'))
 
             # Add the Timeslots to the stream's availability
-            this_stream['availability'] = LSPTimeslotsSerializer(
+            this_stream['availability'] = LSPTimeslotSerializer(
                 timeslots_lsp_with_this_stream, many=True).data
 
             # Add this stream to our final list if 'availability' is not empty
@@ -212,7 +212,7 @@ class ProductsViewSet(mixins.ListModelMixin,
                 id__in=products_with_this_stream.values('id_asset'))
 
             # Add assets to the stream
-            this_stream['assets'] = AssetsSerializer(
+            this_stream['assets'] = AssetSerializer(
                 assets_in_this_stream, many=True).data
 
         return Response(filtered_streams, status=status.HTTP_200_OK)
