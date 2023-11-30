@@ -129,29 +129,31 @@ class ProductsViewSet(mixins.ListModelMixin,
         weekdays = []
 
         if weekdays_in_params is not None:
-            split_elems = weekdays_in_params.split(',')
-            for split_elem in split_elems:
+            for elem in weekdays_in_params:
+                split_elems = elem.split(',')
+                for split_elem in split_elems:
 
-                # If string, check if it's a valid weekday name
-                if not split_elem.isnumeric():
-                    if split_elem.lower() not in self.weekdays_map:
-                        raise ValidationError('invalid weekday: ' + split_elem)
-                    weekdays.append(self.weekdays_map[split_elem.lower()])
+                    # If string, check if it's a valid weekday name
+                    if not split_elem.isnumeric():
+                        if split_elem.lower() not in self.weekdays_map:
+                            raise ValidationError('invalid weekday: ' + split_elem)
+                        weekdays.append(self.weekdays_map[split_elem.lower()])
 
-                # If integer, check if it's a valid weekday id
-                else:
-                    if int(split_elem) < 0 or int(split_elem) > 6:
-                        raise ValidationError(
-                            'invalid weekday id: ' + split_elem)
-                    weekdays.append(int(split_elem))
+                    # If integer, check if it's a valid weekday id
+                    else:
+                        if int(split_elem) < 0 or int(split_elem) > 6:
+                            raise ValidationError(
+                                'invalid weekday id: ' + split_elem)
+                        weekdays.append(int(split_elem))
 
         return weekdays
 
     def list(self, request):
 
         # Get HTTP request parameters
+        # getlist is used for weekedays so that we can pass multiple weekdays= in the URL
         postal_code = request.GET.get('postalcode', None)
-        weekdays_in_params = request.GET.get('weekdays',  None)
+        weekdays_in_params = request.GET.getlist('weekdays',  None)
 
         try:
             # Check if postal code is valid
