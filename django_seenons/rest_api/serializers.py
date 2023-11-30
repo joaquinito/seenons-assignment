@@ -73,14 +73,16 @@ class LSPTimeslotsSerializer(serializers.ModelSerializer):
         model = LSPTimeslot
         fields = '__all__'
         read_only_fields = ['id']
-
+   
 
 class StreamSerializerForProducts(serializers.ModelSerializer):
     """ Serializer for Streams used in ProductsViewSet """
 
     stream_name = serializers.CharField(source='name')
+    availability = LSPTimeslotsSerializer(many=True, read_only=True)
+    assets = AssetsSerializer(many=True, read_only=True)
 
     class Meta:
         model = Stream
-        fields = ['id', 'stream_name', 'type']
+        fields = ['id', 'stream_name', 'type', 'availability', 'assets' ]
         read_only_fields = ['id']

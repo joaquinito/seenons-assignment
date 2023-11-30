@@ -3,12 +3,11 @@ URL mappings for the REST APIs.
 """
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import CustomersViewSet, StreamsViewSet, AssetsViewSet, LogisticServiceProvidersViewSet, \
-    LSPProductsViewSet, LSPTimeslotsViewSet, ProductsViewSet
+from .views import CustomersViewSet, StreamsViewSet, AssetsViewSet, \
+    LogisticServiceProvidersViewSet, LSPProductsViewSet, LSPTimeslotsViewSet, ProductsViewSet
 
 
 router = DefaultRouter()
-
 router.register('customers', CustomersViewSet)
 router.register('streams', StreamsViewSet)
 router.register('assets', AssetsViewSet)

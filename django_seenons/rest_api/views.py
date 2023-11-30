@@ -79,7 +79,7 @@ class LSPTimeslotsViewSet(mixins.ListModelMixin,
 
 @extend_schema(
     description='Returns all streams available for a given postal code and weekdays, \
-      including the timeslots and assets for each stream.',
+                 including the timeslots and assets for each stream.',
     parameters=[
         OpenApiParameter(
                 name='postalcode',
@@ -90,17 +90,21 @@ class LSPTimeslotsViewSet(mixins.ListModelMixin,
         OpenApiParameter(
             name='weekdays',
             required=False,
-            description='Weekdays in comma-separated string format (e.g. "monday", "Tuesday", etc.) \
-                            or integer format (0 = Sunday, 1 = Monday, ... 6 = Saturday)',
+            description='Weekdays in comma-separated string format \
+                         (e.g. "monday", "Tuesday", etc.) or integer format \
+                         (0 = Sunday, 1 = Monday, ... 6 = Saturday)',
         ),
     ],
+    responses={
+        200: StreamSerializerForProducts
+    }
 )
 class ProductsViewSet(mixins.ListModelMixin,
                       viewsets.GenericViewSet):
 
     queryset = Stream.objects.all()
 
-    weekday_map = {
+    weekdays_map = {
         'sunday': 0,
         'monday': 1,
         'tuesday': 2,
@@ -110,36 +114,54 @@ class ProductsViewSet(mixins.ListModelMixin,
         'saturday': 6,
     }
 
+    def _validate_postal_code(self, postal_code):
+        if postal_code is None:
+            raise ValidationError('postalcode is required')
+        if not postal_code.isnumeric():
+            raise ValidationError(
+                'postalcode must be an integer between between 1000 and 9999')
+        if int(postal_code) < 1000 or int(postal_code) > 9999:
+            raise ValidationError('postalcode must be between 1000 and 9999')
+
+        return True
+
+    def _get_weekdays_id_list(self, weekdays_in_params):
+        weekdays = []
+
+        if weekdays_in_params is not None:
+            split_elems = weekdays_in_params.split(',')
+            for split_elem in split_elems:
+
+                # If string, check if it's a valid weekday name
+                if not split_elem.isnumeric():
+                    if split_elem.lower() not in self.weekdays_map:
+                        raise ValidationError('invalid weekday: ' + split_elem)
+                    weekdays.append(self.weekdays_map[split_elem.lower()])
+
+                # If integer, check if it's a valid weekday id
+                else:
+                    if int(split_elem) < 0 or int(split_elem) > 6:
+                        raise ValidationError(
+                            'invalid weekday id: ' + split_elem)
+                    weekdays.append(int(split_elem))
+
+        return weekdays
+
     def list(self, request):
 
         # Get HTTP request parameters
         postal_code = request.GET.get('postalcode', None)
-        weekdays_in_params = request.GET.getlist('weekdays', None)
+        weekdays_in_params = request.GET.get('weekdays',  None)
 
-        # Check if postal code is valid
         try:
-            if postal_code is None:
-                return Response({'error': 'postalcode is required'},
-                                status=status.HTTP_400_BAD_REQUEST)
-            if int(postal_code) < 1000 or int(postal_code) > 9999:
-                return Response({'error': 'postalcode must be between 1000 and 9999'},
-                                status=status.HTTP_400_BAD_REQUEST)
-        except ValueError:
-            return Response({'error': 'postalcode must be an integer between between 1000 and 9999'},
-                            status=status.HTTP_400_BAD_REQUEST)
+            # Check if postal code is valid
+            self._validate_postal_code(postal_code)
 
-        # Convert weekdays from parameters to integer format
-        weekdays = []
-        if weekdays_in_params is not None:
-            for elem in weekdays_in_params:
-                split_elems = elem.split(',')
+            # Check if weekdays are valid and convert to integer-format list
+            weekdays = self._get_weekdays_id_list(weekdays_in_params)
 
-                for split_elem in split_elems:
-                    if not split_elem.isnumeric():
-                        weekdays.append(
-                            self.weekday_map[split_elem.lower()])
-                    else:
-                        weekdays.append(int(split_elem))
+        except ValidationError as e:
+            return Response({'error': e.message}, status=status.HTTP_400_BAD_REQUEST)
 
         # Get all Logistic Service Providers that match the postal code
         lsp_in_postalcode = LogisticServiceProvider.objects.filter(

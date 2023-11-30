@@ -33,7 +33,6 @@ class Asset(models.Model):
     sub_category = models.CharField(max_length=200)
     size = models.PositiveIntegerField(default=0)
     size_unit = models.CharField( max_length=200)
-    image_url = models.CharField(null=True, max_length=300, )
     placement_type = models.CharField(max_length=200)
 
     def __str__(self):
