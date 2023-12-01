@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
 import os
+import sys
 import dj_database_url
 from pathlib import Path
 from dotenv import load_dotenv
@@ -88,6 +89,16 @@ DATABASES = {
         conn_health_checks=True,
     )
 }
+
+# Test database
+if 'test' in sys.argv:
+    DATABASES['default'] = {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'seenons_test_db',
+        'USER': 'admin',
+        'HOST': 'localhost',
+        'PORT': '5432',
+    }
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
